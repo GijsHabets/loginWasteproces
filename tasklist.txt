@@ -1,0 +1,7 @@
+-InMemoryUserDetailsManager:
+moet users uit database halen
+
+-signup methode:
+moet nieuwe user naar de database schrijven(admin)
+
+token moet mee worden gegeven
