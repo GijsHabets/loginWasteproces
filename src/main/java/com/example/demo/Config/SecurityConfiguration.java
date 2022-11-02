@@ -10,10 +10,16 @@ import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.oauth2.server.resource.OAuth2ResourceServerConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -29,6 +35,14 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfiguration {
     private  final DBUserDetailsService dbUserDetailsService;
     private final RsaKeyproperties rsaKeyproperties;
+
+    @Bean
+    public AuthenticationManager authenticationManager(DBUserDetailsService dbUserDetailsService){
+        var authProvider = new DaoAuthenticationProvider();
+        authProvider.setUserDetailsService(dbUserDetailsService);
+        return new ProviderManager(authProvider);
+
+    }
 
     public SecurityConfiguration(DBUserDetailsService dbUserDetailsService, RsaKeyproperties rsaKeyproperties) {
         this.dbUserDetailsService = dbUserDetailsService;
@@ -56,10 +70,12 @@ public class SecurityConfiguration {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .csrf(csrf -> csrf.disable())
-                .authorizeRequests(auth -> auth.anyRequest().authenticated())
-//                .oauth2ResourceServer(OAuth2ResourceServerConfigurer::jwt)
-//                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .httpBasic(Customizer.withDefaults())
+                .authorizeRequests(auth -> auth
+                        .mvcMatchers("/token").permitAll()
+                        .anyRequest().authenticated())
+                .oauth2ResourceServer(OAuth2ResourceServerConfigurer::jwt)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                //.httpBasic(Customizer.withDefaults())
                 .userDetailsService(dbUserDetailsService)
                 .build();
     }
